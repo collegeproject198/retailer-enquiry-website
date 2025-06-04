@@ -1,9 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-import Sidebar from "./components/sidebaar";
+import Sidebar from "../src/components/Sidebaar";
 import DealerForm from "./pages/DealerForm";
 import History from "./pages/History";
-import Tracker from "./pages/Tracker";
+// import Tracker from "./pages/Tracker";
 import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendents";
 
@@ -17,7 +17,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dealer-form" element={<DealerForm />} />
-              <Route path="/tracker" element={<Tracker />} />
+              {/* <Route path="/tracker" element={<Tracker />} /> */}
               <Route path="/history" element={<History />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/attendance" element={<Attendance />} />
