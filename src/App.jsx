@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-import Sidebar from "./components/Sidebaar";
+import Sidebar from "../src/components/Sidebaar";
 import DealerForm from "./pages/DealerForm";
 import History from "./pages/History";
 import Reports from "./pages/Reports";
