@@ -2,20 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { toast, Toaster } from "react-hot-toast";
-import { DownloadIcon, FilterIcon, SearchIcon, Eye } from "lucide-react";
-import HistoryDummy from "../components/dialogbox/TrackerDialog";
+import { DownloadIcon, FilterIcon, SearchIcon, Eye, X } from "lucide-react";
 
 const History = () => {
   const [indents, setIndents] = useState([]);
   const [selectedIndent, setSelectedIndent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [col2Filter, setCol2Filter] = useState("");
+  const [col4Filter, setCol4Filter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [sheetHeaders, setSheetHeaders] = useState([]);
   const [error, setError] = useState(null);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
   const SPREADSHEET_ID = "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
-  const DISPLAY_COLUMNS = [2, 3, 4, 5, 6, 8, 11];
+  const DISPLAY_COLUMNS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11];
 
   // Function to fetch data only from FMS sheet
   const fetchFMSData = async () => {
@@ -23,16 +25,14 @@ const History = () => {
       setIsLoading(true);
       setError(null);
 
-      console.log("🔄 Fetching data from FMS sheet...");
+      console.log("🔄 Fetching data from History sheet...");
 
       const response = await fetch(
-        `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=FMSAttachment`
+        `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=FMS`
       );
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to fetch FMSAttachment data: ${response.status}`
-        );
+        throw new Error(`Failed to fetch History data: ${response.status}`);
       }
 
       const text = await response.text();
@@ -40,18 +40,18 @@ const History = () => {
       const jsonEnd = text.lastIndexOf("}");
 
       if (jsonStart === -1 || jsonEnd === -1) {
-        throw new Error("Invalid response format from FMSAttachment sheet");
+        throw new Error("Invalid response format from History sheet");
       }
 
       const data = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
 
       if (!data.table || !data.table.rows) {
-        throw new Error("No table data found in FMSAttachment sheet");
+        throw new Error("No table data found in History sheet");
       }
 
-      console.log("✅ FMSAttachment data loaded successfully");
+      console.log("✅ History data loaded successfully");
 
-      // Process FMS headers
+      // Process History headers
       const fmsHeaders = [];
 
       if (data.table.cols) {
@@ -65,7 +65,7 @@ const History = () => {
 
       setSheetHeaders(fmsHeaders);
 
-      // Process FMS data rows
+      // Process History data rows
       const fmsItems = data.table.rows.map((row, rowIndex) => {
         const itemObj = {
           _id: `${rowIndex}-${Math.random().toString(36).substr(2, 9)}`,
@@ -90,21 +90,14 @@ const History = () => {
       });
 
       setIndents(filteredItems);
-      console.log(
-        `📊 Processed ${filteredItems.length} records from FMSAttachment sheet`
-      );
-
-      toast.success(
-        `Loaded ${filteredItems.length} records from FMSAttachment sheet`,
-        {
-          duration: 3000,
-          position: "top-right",
-        }
-      );
+      toast.success(` ${filteredItems.length} History successfully fetched `, {
+        duration: 3000,
+        position: "top-right",
+      });
     } catch (err) {
-      console.error("❌ Error fetching FMSAttachment data:", err);
+      console.error("❌ Error fetching History data:", err);
       setError(err.message);
-      toast.error(`Failed to load FMSAttachment data: ${err.message}`, {
+      toast.error(`Failed to load History data: ${err.message}`, {
         duration: 4000,
         position: "top-right",
       });
@@ -118,20 +111,33 @@ const History = () => {
   }, []);
 
   const filteredIndents = indents.filter((item) => {
-    if (!searchTerm) return true;
-
     const term = searchTerm.toLowerCase();
+    const col2Val = String(item.col2 || "").toLowerCase();
+    const col4Val = String(item.col4 || "").toLowerCase();
 
-    return DISPLAY_COLUMNS.some((colIndex) => {
+    // Search term filter
+    const matchesSearchTerm = DISPLAY_COLUMNS.some((colIndex) => {
       const value = item[`col${colIndex}`];
-      return value && value.toString().toLowerCase().includes(term);
+      return value && String(value).toLowerCase().includes(term);
     });
+
+    // col2 filter
+    const matchesCol2 = col2Filter
+      ? col2Val.includes(col2Filter.toLowerCase())
+      : true;
+
+    // col4 filter
+    const matchesCol4 = col4Filter
+      ? col4Val.includes(col4Filter.toLowerCase())
+      : true;
+
+    return matchesSearchTerm && matchesCol2 && matchesCol4;
   });
 
-  const refreshData = () => {
-    console.log("🔄 Refreshing FMSAttachment data...");
-    fetchFMSData();
-  };
+  // const refreshData = () => {
+  //   console.log("🔄 Refreshing History data...");
+  //   fetchFMSData();
+  // };
 
   const exportData = () => {
     try {
@@ -159,7 +165,7 @@ const History = () => {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `FMSAttachment_Data_${new Date().toISOString().split("T")[0]}.csv`
+        `History_Data_${new Date().toISOString().split("T")[0]}.csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -210,7 +216,7 @@ const History = () => {
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Error Loading FMSAttachment Data
+            Error Loading History Data
           </h3>
           <p className="text-red-600 font-medium mb-4">{error}</p>
           <button
@@ -249,9 +255,78 @@ const History = () => {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 w-full sm:w-auto">
-                  <FilterIcon className="h-4 w-4 mr-2" />
-                  Filter
+                <div className="relative">
+                  <button
+                    onClick={() =>
+                      setIsFilterDropdownOpen(!isFilterDropdownOpen)
+                    }
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 w-full sm:w-auto"
+                    aria-expanded={isFilterDropdownOpen}
+                    aria-haspopup="true"
+                  >
+                    <FilterIcon className="h-4 w-4 mr-2" />
+                    Filter
+                  </button>
+                  {isFilterDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10 p-4">
+                      <div className="py-1">
+                        <div className="block px-4 py-2 text-sm text-gray-700 font-semibold">
+                          Filter by Columns
+                        </div>
+                        <div className="border-t border-gray-200 my-2"></div>{" "}
+                        {/* Separator */}
+                        <div className="grid gap-4">
+                          <div>
+                            <label
+                              htmlFor="col2-filter"
+                              className="block text-sm font-medium text-gray-700"
+                            >
+                              {sheetHeaders.find((h) => h.id === "col2")
+                                ?.label || "Column 2"}
+                            </label>
+                            <input
+                              id="col2-filter"
+                              type="text"
+                              placeholder={`Filter by ${
+                                sheetHeaders.find((h) => h.id === "col2")
+                                  ?.label || "Column 2"
+                              }`}
+                              value={col2Filter}
+                              onChange={(e) => setCol2Filter(e.target.value)}
+                              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="col4-filter"
+                              className="block text-sm font-medium text-gray-700"
+                            >
+                              {sheetHeaders.find((h) => h.id === "col4")
+                                ?.label || "Column 4"}
+                            </label>
+                            <input
+                              id="col4-filter"
+                              type="text"
+                              placeholder={`Filter by ${
+                                sheetHeaders.find((h) => h.id === "col4")
+                                  ?.label || "Column 4"
+                              }`}
+                              value={col4Filter}
+                              onChange={(e) => setCol4Filter(e.target.value)}
+                              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={exportData}
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 w-full sm:w-auto"
+                >
+                  <DownloadIcon className="h-4 w-4 mr-2" />
+                  Export
                 </button>
               </div>
             </div>
@@ -304,9 +379,9 @@ const History = () => {
                           colSpan={sheetHeaders.length + 1}
                           className="px-6 py-12 text-center text-slate-500 font-medium"
                         >
-                          {searchTerm
-                            ? "No results found for your search."
-                            : "No data found in FMSAttachment sheet."}
+                          {searchTerm || col2Filter || col4Filter
+                            ? "No results found for your current filters."
+                            : "No data found in History sheet."}
                         </td>
                       </tr>
                     ) : (
@@ -346,68 +421,57 @@ const History = () => {
 
           {/* View Details Dialog */}
           {isDialogOpen && selectedIndent && (
-            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-                <div className="sticky top-0 bg-white/90 backdrop-blur-md px-8 py-6 border-b border-slate-200 flex items-center justify-between">
-                  <h2 className="text-3xl font-bold text-slate-800">
-                    FMSAttachment Record Details
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in-0">
+              <div className="relative w-full max-w-3xl rounded-lg bg-white p-6 shadow-lg animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b pb-4">
+                  <h2 className="text-2xl font-semibold text-gray-800">
+                    Interaction Details
                   </h2>
                   <button
                     onClick={() => setIsDialogOpen(false)}
-                    className="text-slate-500 hover:text-slate-700 transition-colors"
+                    className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+                    aria-label="Close"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <X className="h-6 w-6 text-gray-500" />
                   </button>
                 </div>
 
-                <div className="p-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {Object.keys(selectedIndent)
-                      .filter(
-                        (key) => key.startsWith("col") && selectedIndent[key]
-                      )
-                      .map((key) => {
-                        const header = sheetHeaders.find(
-                          (h) => h.id === key
-                        ) || {
-                          label: `Column ${key.replace("col", "")}`,
-                        };
-                        return (
-                          <div key={key} className="space-y-2">
-                            <label className="block text-sm font-semibold text-slate-700">
-                              {header.label}
-                            </label>
-                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                              <p className="text-slate-900 font-medium">
-                                {selectedIndent[key] || "—"}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6">
+                  {Object.keys(selectedIndent)
+                    .filter(
+                      (key) =>
+                        key.startsWith("col") &&
+                        selectedIndent[key] !== null &&
+                        selectedIndent[key] !== undefined &&
+                        String(selectedIndent[key]).trim() !== "" &&
+                        DISPLAY_COLUMNS.includes(
+                          Number.parseInt(key.replace("col", ""))
+                        )
+                    )
+                    .map((key) => {
+                      const header = sheetHeaders.find((h) => h.id === key) || {
+                        label: `Column ${key.replace("col", "")}`,
+                      };
+                      return (
+                        <div key={key} className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-500">
+                            {header.label}
+                          </span>
+                          <span className="text-base font-semibold text-gray-900">
+                            {selectedIndent[key] || "—"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
 
-                  <div className="flex justify-end mt-8 pt-6 border-t border-slate-200">
-                    <button
-                      onClick={() => setIsDialogOpen(false)}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-6 rounded-xl transition-all duration-200"
-                    >
-                      Close
-                    </button>
-                  </div>
+                <div className="flex justify-end border-t pt-4">
+                  <button
+                    onClick={() => setIsDialogOpen(false)}
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gray-100 hover:bg-gray-200 text-gray-700 h-10 px-4 py-2"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>

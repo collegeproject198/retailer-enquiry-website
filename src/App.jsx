@@ -3,9 +3,9 @@ import Dashboard from "./pages/Dashboard";
 import Sidebar from "../src/components/Sidebaar";
 import DealerForm from "./pages/DealerForm";
 import History from "./pages/History";
-import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendents";
 import Tracker from "./pages/Tracker";
+import Reports from "./pages/Reports";
 
 function App() {
   return (
