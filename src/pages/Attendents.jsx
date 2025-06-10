@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { MapPin } from "lucide-react";
 import { format } from "date-fns";
+import AttendanceHistory from "../components/AttendanceHistory";
 
 const Attendance = () => {
   const [attendance, setAttendance] = useState([]);
@@ -185,7 +186,7 @@ const Attendance = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center lg:text-left">
-          <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
+          <h1 className="pb-3 text-4xl lg:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
             Attendance Management
           </h1>
           <p className="text-lg text-slate-600 font-medium">
@@ -364,6 +365,7 @@ const Attendance = () => {
           </form>
         </div>
       </div>
+      <AttendanceHistory />
     </div>
   );
 };

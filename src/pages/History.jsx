@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { DownloadIcon, FilterIcon, SearchIcon, Eye, X } from "lucide-react";
+import Login from "./Login";
 
 const History = () => {
   const [indents, setIndents] = useState([]);
@@ -477,6 +478,7 @@ const History = () => {
             </div>
           )}
         </div>
+        <Login />
       </div>
     </>
   );
