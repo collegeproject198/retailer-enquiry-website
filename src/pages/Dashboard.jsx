@@ -1,5 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import {
+  ArrowUpRight,
+  Users,
+  Store,
+  ShoppingBag,
+  AlertCircle,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -13,14 +21,6 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import {
-  ArrowUpRight,
-  Users,
-  Store,
-  ShoppingBag,
-  AlertCircle,
-} from "lucide-react";
-
 const salesData = [
   { name: "Jan", sales: 4000 },
   { name: "Feb", sales: 3000 },
@@ -29,15 +29,84 @@ const salesData = [
   { name: "May", sales: 6000 },
   { name: "Jun", sales: 5500 },
 ];
-
 const statusData = [
   { name: "Completed", value: 45, color: "#10b981" },
   { name: "In Progress", value: 30, color: "#3b82f6" },
   { name: "Pending", value: 15, color: "#f59e0b" },
   { name: "Cancelled", value: 10, color: "#ef4444" },
 ];
-
 function Dashboard() {
+  const [totalCount, setTotalCount] = useState(0);
+  const [activeDealersCount, setActiveDealersCount] = useState(0);
+  const [totalOrdersCount, setTotalOrdersCount] = useState(0); // New state for Column Z count
+  const [pendingEnquiriesCount, setPendingEnquiriesCount] = useState(0); // New state for Column O not null, Column P null
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          "https://docs.google.com/spreadsheets/d/1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0/gviz/tq?tqx=out:json&sheet=FMS"
+        );
+        const text = await response.text();
+        const jsonStart = text.indexOf("{");
+        const jsonEnd = text.lastIndexOf("}") + 1;
+        const jsonData = text.substring(jsonStart, jsonEnd);
+        const data = JSON.parse(jsonData);
+
+        if (data?.table?.rows) {
+          // Count total rows (excluding header if present)
+          setTotalCount(data.table.rows.length);
+
+          // Count non-empty values in Column B (index 1)
+          const dealers = new Set();
+          data.table.rows.forEach((row) => {
+            if (row.c?.[1]?.v) {
+              // Column B data (index 1)
+              dealers.add(row.c[1].v);
+            }
+          });
+          setActiveDealersCount(dealers.size);
+
+          // Count non-empty values in Column Z (index 25)
+          let ordersCount = 0;
+          data.table.rows.forEach((row) => {
+            if (row.c?.[25]?.v) {
+              // Column Z data (index 25, since Z is the 26th letter)
+              const value = row.c[25].v;
+              if (value && String(value).trim() !== "") {
+                ordersCount++;
+              }
+            }
+          });
+          setTotalOrdersCount(ordersCount);
+
+          // Count rows where Column O is not null and Column P is null
+          let pendingCount = 0;
+          data.table.rows.forEach((row) => {
+            const colO = row.c?.[14]?.v; // Column O (index 14)
+            const colP = row.c?.[15]?.v; // Column P (index 15)
+
+            const isColONotEmpty = colO && String(colO).trim() !== "";
+            const isColPEmpty = !colP || String(colP).trim() === "";
+
+            // If Column O is not null AND Column P is null, count it
+            if (isColONotEmpty && isColPEmpty) {
+              pendingCount++;
+            }
+          });
+          setPendingEnquiriesCount(pendingCount);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -63,20 +132,25 @@ function Dashboard() {
 
         {/* KPI Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* Total Sales Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
             <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-blue-100 uppercase tracking-wider mb-2">
-                    Total Sales
+                    Total Records
                   </h3>
                   <div className="text-3xl font-bold text-white mb-2">
-                    ₹1,25,890
+                    {isLoading ? (
+                      <div className="h-8 w-20 bg-blue-400/50 rounded animate-pulse"></div>
+                    ) : (
+                      totalCount.toLocaleString()
+                    )}
                   </div>
                   <div className="flex items-center text-blue-100">
                     <ArrowUpRight className="mr-1 h-4 w-4" />
                     <span className="text-sm font-medium">
-                      +12.5% from last month
+                      Live data from FMS sheet
                     </span>
                   </div>
                 </div>
@@ -87,6 +161,7 @@ function Dashboard() {
             </div>
           </div>
 
+          {/* Active Dealers Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
             <div className="bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600 p-6">
               <div className="flex items-center justify-between">
@@ -94,11 +169,17 @@ function Dashboard() {
                   <h3 className="text-sm font-semibold text-purple-100 uppercase tracking-wider mb-2">
                     Active Dealers
                   </h3>
-                  <div className="text-3xl font-bold text-white mb-2">245</div>
+                  <div className="text-3xl font-bold text-white mb-2">
+                    {isLoading ? (
+                      <div className="h-8 w-20 bg-purple-400/50 rounded animate-pulse"></div>
+                    ) : (
+                      activeDealersCount
+                    )}
+                  </div>
                   <div className="flex items-center text-purple-100">
                     <ArrowUpRight className="mr-1 h-4 w-4" />
                     <span className="text-sm font-medium">
-                      +5.2% from last month
+                      Unique dealers in Column B
                     </span>
                   </div>
                 </div>
@@ -109,6 +190,7 @@ function Dashboard() {
             </div>
           </div>
 
+          {/* Total Orders Card - Updated to show Column Z count */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
             <div className="bg-gradient-to-br from-pink-500 via-rose-600 to-red-600 p-6">
               <div className="flex items-center justify-between">
@@ -117,12 +199,16 @@ function Dashboard() {
                     Total Orders
                   </h3>
                   <div className="text-3xl font-bold text-white mb-2">
-                    1,890
+                    {isLoading ? (
+                      <div className="h-8 w-20 bg-pink-400/50 rounded animate-pulse"></div>
+                    ) : (
+                      totalOrdersCount.toLocaleString()
+                    )}
                   </div>
                   <div className="flex items-center text-pink-100">
                     <ArrowUpRight className="mr-1 h-4 w-4" />
                     <span className="text-sm font-medium">
-                      +18.2% from last month
+                      Live data from Column Z
                     </span>
                   </div>
                 </div>
@@ -133,6 +219,7 @@ function Dashboard() {
             </div>
           </div>
 
+          {/* Pending Enquiries Card - Updated to show Column O not null, Column P null count */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
             <div className="bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 p-6">
               <div className="flex items-center justify-between">
@@ -140,11 +227,17 @@ function Dashboard() {
                   <h3 className="text-sm font-semibold text-amber-100 uppercase tracking-wider mb-2">
                     Pending Enquiries
                   </h3>
-                  <div className="text-3xl font-bold text-white mb-2">42</div>
+                  <div className="text-3xl font-bold text-white mb-2">
+                    {isLoading ? (
+                      <div className="h-8 w-20 bg-amber-400/50 rounded animate-pulse"></div>
+                    ) : (
+                      pendingEnquiriesCount
+                    )}
+                  </div>
                   <div className="flex items-center text-amber-100">
                     <ArrowUpRight className="mr-1 h-4 w-4" />
                     <span className="text-sm font-medium">
-                      -8.4% from last month
+                      Col O filled, Col P pending
                     </span>
                   </div>
                 </div>
@@ -155,7 +248,6 @@ function Dashboard() {
             </div>
           </div>
         </div>
-
         {/* Charts Section */}
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Monthly Sales Chart */}
@@ -263,34 +355,6 @@ function Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800 px-8 py-6">
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Quick Actions
-            </h3>
-            <p className="text-slate-200 text-lg">
-              Frequently used actions and shortcuts
-            </p>
-          </div>
-          <div className="p-8">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <button className="bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 border border-blue-200 font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-sm hover:shadow-md">
-                Add New Dealer
-              </button>
-              <button className="bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-700 border border-purple-200 font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-sm hover:shadow-md">
-                Generate Report
-              </button>
-              <button className="bg-gradient-to-r from-green-100 to-teal-100 hover:from-green-200 hover:to-teal-200 text-green-700 border border-green-200 font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-sm hover:shadow-md">
-                Track Orders
-              </button>
-              <button className="bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 border border-amber-200 font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-sm hover:shadow-md">
-                View Analytics
-              </button>
             </div>
           </div>
         </div>

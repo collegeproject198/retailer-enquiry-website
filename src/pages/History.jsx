@@ -478,7 +478,6 @@ const History = () => {
             </div>
           )}
         </div>
-        <Login />
       </div>
     </>
   );

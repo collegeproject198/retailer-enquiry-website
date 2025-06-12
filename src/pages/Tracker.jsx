@@ -131,6 +131,18 @@ const Tracker = () => {
     const col2Val = String(item.col2 || "").toLowerCase();
     const col4Val = String(item.col4 || "").toLowerCase();
 
+    // Column O and P condition - Hide data if col O is null/empty and col P is not null/not empty
+    const colO = item.col14; // Column O is index 14 (0-based)
+    const colP = item.col15; // Column P is index 15 (0-based)
+
+    const isColOEmpty = !colO || String(colO).trim() === "";
+    const isColPNotEmpty = colP && String(colP).trim() !== "";
+
+    // If col O is empty AND col P is not empty, hide this row
+    if (isColOEmpty && isColPNotEmpty) {
+      return false;
+    }
+
     const matchesSearchTerm = DISPLAY_COLUMNS.some((colIndex) => {
       const value = item[`col${colIndex}`];
       return value && String(value).toLowerCase().includes(term);

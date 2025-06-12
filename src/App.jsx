@@ -1,223 +1,225 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, createContext } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-
-// Page components
 import Dashboard from "./pages/Dashboard";
 import DealerForm from "./pages/DealerForm";
 import History from "./pages/History";
 import Attendance from "./pages/Attendents";
 import Tracker from "./pages/Tracker";
 import Reports from "./pages/Reports";
-
-import "./index.css";
 import Login from "./pages/Login";
-import AuthenticatedLayout from "./components/AuthenticatedLayout";
+import Sidebar from "./components/Sidebaar";
 
-// Protected route component
-const ProtectedRoute = ({ children, isLoggedIn }) => {
-  if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
+export const AuthContext = createContext(null);
 
-function App() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [pendingCounts, setPendingCounts] = useState({
-    indents: 0,
-    approvals: 0,
-    threeParty: 0,
-    storeOut: 0,
-  });
-  const [dataInitialized, setDataInitialized] = useState(false);
+const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userType, setUserType] = useState(null);
 
-  // Check authentication status on app load
   useEffect(() => {
-    const checkAuthStatus = () => {
-      const loginStatus = localStorage.getItem("isLoggedIn") === "true";
-      setIsLoggedIn(loginStatus);
-      setIsLoading(false);
-    };
+    const auth = localStorage.getItem("isAuthenticated");
+    const storedUser = localStorage.getItem("currentUser");
+    const storedUserType = localStorage.getItem("userType");
 
-    checkAuthStatus();
+    if (auth === "true" && storedUser) {
+      setIsAuthenticated(true);
+      setCurrentUser(JSON.parse(storedUser));
+      setUserType(storedUserType);
+    }
   }, []);
 
-  // Function to handle successful login
-  const handleLoginSuccess = () => {
-    localStorage.setItem("isLoggedIn", "true");
-    setIsLoggedIn(true);
-  };
+  const login = async (username, password) => {
+    try {
+      const loginUrl =
+        "https://docs.google.com/spreadsheets/d/1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0/gviz/tq?tqx=out:json&sheet=Master";
+      const response = await fetch(loginUrl);
+      const text = await response.text();
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
-    // Use navigate instead of window.location for better UX
-    window.location.href = "/login";
-  };
+      const jsonStart = text.indexOf("{");
+      const jsonEnd = text.lastIndexOf("}") + 1;
+      const jsonData = text.substring(jsonStart, jsonEnd);
+      const data = JSON.parse(jsonData);
 
-  useEffect(() => {
-    // Only run this effect if user is logged in
-    if (!isLoggedIn) return;
+      if (!data?.table?.rows) {
+        showNotification("Failed to fetch user data", "error");
+        return false;
+      }
 
-    // Initialize test data if not already done
-    if (
-      !localStorage.getItem("indents") ||
-      !localStorage.getItem("inventory")
-    ) {
-      setDataInitialized(true);
+      const foundUser = data.table.rows.find(
+        (row) => row.c?.[7]?.v === username && row.c?.[8]?.v === password
+      );
+
+      if (foundUser) {
+        const userInfo = {
+          username,
+          loginTime: new Date().toISOString(),
+        };
+
+        setIsAuthenticated(true);
+        setCurrentUser(userInfo);
+        setUserType(foundUser.c?.[9]?.v || "user");
+
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("currentUser", JSON.stringify(userInfo));
+        localStorage.setItem("userType", foundUser.c?.[9]?.v || "user");
+
+        showNotification(`Welcome, ${username}!`, "success");
+        return true;
+      } else {
+        showNotification("Invalid credentials", "error");
+        return false;
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      showNotification("An error occurred during login", "error");
+      return false;
     }
-
-    // Set up global tab change handler
-    window.setActiveTab = (tab) => {
-      setActiveTab(tab);
-    };
-
-    // Calculate pending counts
-    const calculateCounts = () => {
-      const storedIndents = JSON.parse(localStorage.getItem("indents") || "[]");
-
-      const pendingIndents = storedIndents.filter(
-        (indent) => indent.status === "Pending"
-      ).length;
-      const pendingThreeParty = storedIndents.filter(
-        (indent) =>
-          indent.status === "Three Party" &&
-          indent.threePartyInfo &&
-          !indent.threePartyApproval
-      ).length;
-
-      const pendingStoreOut = storedIndents.filter(
-        (indent) =>
-          (indent.indentStatus === "Store Out" ||
-            indent.status === "Store Out") &&
-          indent.status !== "Store Out Completed"
-      ).length;
-
-      setPendingCounts({
-        indents: pendingIndents,
-        approvals: pendingIndents,
-        threeParty: pendingThreeParty,
-        storeOut: pendingStoreOut,
-      });
-    };
-
-    calculateCounts();
-
-    // Set up interval to refresh counts
-    const refreshInterval = setInterval(calculateCounts, 30000);
-
-    return () => {
-      delete window.setActiveTab;
-      clearInterval(refreshInterval);
-    };
-  }, [isLoggedIn]);
-
-  const handleTabChange = (value) => {
-    setActiveTab(value);
-    setIsMobileMenuOpen(false);
   };
 
-  const handleResetData = () => {
-    setDataInitialized(true);
-    // Force refresh counts
-    const storedIndents = JSON.parse(localStorage.getItem("indents") || "[]");
-    const pendingIndents = storedIndents.filter(
-      (indent) => indent.status === "Pending"
-    ).length;
-    const pendingThreeParty = storedIndents.filter(
-      (indent) =>
-        indent.status === "Three Party" &&
-        indent.threePartyInfo &&
-        !indent.threePartyApproval
-    ).length;
-    const pendingStoreOut = storedIndents.filter(
-      (indent) =>
-        (indent.indentStatus === "Store Out" ||
-          indent.status === "Store Out") &&
-        indent.status !== "Store Out Completed"
-    ).length;
-
-    setPendingCounts({
-      indents: pendingIndents,
-      approvals: pendingIndents,
-      threeParty: pendingThreeParty,
-      storeOut: pendingStoreOut,
-    });
+  const logout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setUserType(null);
+    localStorage.clear();
+    showNotification("Logged out successfully", "success");
   };
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const showNotification = (message, type = "info") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const isAdmin = () => userType === "admin";
+
+  const ProtectedRoute = ({ children, adminOnly = false }) => {
+    if (!isAuthenticated) return <Navigate to="/login" />;
+    if (adminOnly && !isAdmin()) {
+      showNotification(
+        "You don't have permission to access this page",
+        "error"
+      );
+      return <Navigate to="/" />;
+    }
+    return children;
+  };
 
   return (
-    <Router>
-      <Routes>
-        {/* Login page - accessible when not logged in */}
-        <Route
-          path="/login"
-          element={
-            isLoggedIn ? (
-              <Navigate to="/" replace />
-            ) : (
-              <Login onLoginSuccess={handleLoginSuccess} />
-            )
-          }
-        />
-
-        {/* Parent route for all authenticated content */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute isLoggedIn={isLoggedIn}>
-              <AuthenticatedLayout
-                activeTab={activeTab}
-                handleTabChange={handleTabChange}
-                pendingCounts={pendingCounts}
-                handleResetData={handleResetData}
-                handleLogout={handleLogout}
-                isMobileMenuOpen={isMobileMenuOpen}
-                setIsMobileMenuOpen={setIsMobileMenuOpen}
-                dataInitialized={dataInitialized}
-                setDataInitialized={setDataInitialized}
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        login,
+        logout,
+        currentUser,
+        userType,
+        isAdmin,
+        showNotification,
+      }}
+    >
+      <Router>
+        <div className="flex h-screen bg-gray-50 text-gray-900">
+          {/* Sidebar */}
+          {isAuthenticated && (
+            <div className="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white z-20 shadow-lg">
+              <Sidebar
+                logout={logout}
+                userType={userType}
+                username={currentUser?.username}
               />
-            </ProtectedRoute>
-          }
-        >
-          {/* Nested routes for authenticated users */}
-          <Route index element={<Dashboard />} />
-          <Route path="dealer-form" element={<DealerForm />} />
-          <Route path="tracker" element={<Tracker />} />
-          <Route path="history" element={<History />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="attendance" element={<Attendance />} />
-        </Route>
+            </div>
+          )}
 
-        {/* Fallback for any other path */}
-        <Route
-          path="*"
-          element={<Navigate to={isLoggedIn ? "/" : "/login"} replace />}
-        />
-      </Routes>
-      <Toaster position="top-right" />
-    </Router>
+          {/* Main Content Wrapper */}
+          <div
+            className={`flex flex-col flex-1 overflow-hidden ${
+              isAuthenticated ? "ml-64" : ""
+            }`}
+          >
+            {/* Notification bar */}
+            {notification && (
+              <div
+                className={`p-4 text-sm ${
+                  notification.type === "error"
+                    ? "bg-red-100 text-red-700"
+                    : notification.type === "success"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}
+              >
+                {notification.message}
+              </div>
+            )}
+
+            {/* Scrollable Content Area */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+              <Routes>
+                <Route
+                  path="/login"
+                  element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
+                />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dealer-form"
+                  element={
+                    <ProtectedRoute>
+                      <DealerForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/tracker"
+                  element={
+                    <ProtectedRoute>
+                      <Tracker />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/history"
+                  element={
+                    <ProtectedRoute>
+                      <History />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <Reports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/attendance"
+                  element={
+                    <ProtectedRoute>
+                      <Attendance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </div>
+          </div>
+        </div>
+      </Router>
+    </AuthContext.Provider>
   );
-}
+};
 
 export default App;
