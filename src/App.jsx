@@ -10,10 +10,10 @@ import {
 import Dashboard from "./pages/Dashboard";
 import DealerForm from "./pages/DealerForm";
 import History from "./pages/History";
-import Attendance from "./pages/Attendents";
 import Tracker from "./pages/Tracker";
 import Reports from "./pages/Reports";
 import Login from "./pages/Login";
+import Attendance from "./pages/Attendents";
 import Sidebar from "./components/Sidebaar";
 
 export const AuthContext = createContext(null);
@@ -23,16 +23,18 @@ const App = () => {
   const [notification, setNotification] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [userType, setUserType] = useState(null);
+  const [tabs, setTabs] = useState([]); // State to hold the tabs preference
 
   useEffect(() => {
     const auth = localStorage.getItem("isAuthenticated");
-    const storedUser = localStorage.getItem("currentUser");
+    const storedUser = localStorage.getItem("currentUser  ");
     const storedUserType = localStorage.getItem("userType");
 
     if (auth === "true" && storedUser) {
       setIsAuthenticated(true);
       setCurrentUser(JSON.parse(storedUser));
       setUserType(storedUserType);
+      setTabs(JSON.parse(storedUser).tabs || []); // Set tabs from stored user data
     }
   }, []);
 
@@ -53,23 +55,39 @@ const App = () => {
         return false;
       }
 
-      const foundUser = data.table.rows.find(
+      const rows = data.table.rows;
+
+      // Check for username and password in columns H and I
+      const foundUser = rows.find(
         (row) => row.c?.[7]?.v === username && row.c?.[8]?.v === password
       );
 
       if (foundUser) {
         const userInfo = {
           username,
+          role: foundUser.c?.[9]?.v || "user",
           loginTime: new Date().toISOString(),
+          tabs:
+            foundUser.c?.[10]?.v === "all"
+              ? [
+                  "Dashboard",
+                  "Dealer Form",
+                  "Tracker",
+                  "History",
+                  "Reports",
+                  "Attendance",
+                ]
+              : foundUser.c?.[10]?.v.split(",").map((t) => t.trim()), // Split by comma and trim spaces
         };
 
         setIsAuthenticated(true);
         setCurrentUser(userInfo);
-        setUserType(foundUser.c?.[9]?.v || "user");
+        setUserType(userInfo.role);
+        setTabs(userInfo.tabs); // Set tabs from user info
 
         localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("currentUser", JSON.stringify(userInfo));
-        localStorage.setItem("userType", foundUser.c?.[9]?.v || "user");
+        localStorage.setItem("currentUser  ", JSON.stringify(userInfo));
+        localStorage.setItem("userType", userInfo.role);
 
         showNotification(`Welcome, ${username}!`, "success");
         return true;
@@ -88,6 +106,7 @@ const App = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
     setUserType(null);
+    setTabs([]); // Reset tabs on logout
     localStorage.clear();
     showNotification("Logged out successfully", "success");
   };
@@ -121,6 +140,7 @@ const App = () => {
         userType,
         isAdmin,
         showNotification,
+        tabs, // Provide tabs to context
       }}
     >
       <Router>
@@ -132,6 +152,7 @@ const App = () => {
                 logout={logout}
                 userType={userType}
                 username={currentUser?.username}
+                tabs={tabs} // Pass tabs to Sidebar
               />
             </div>
           )}

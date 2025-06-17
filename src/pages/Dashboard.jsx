@@ -8,33 +8,8 @@ import {
   ShoppingBag,
   AlertCircle,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
-const salesData = [
-  { name: "Jan", sales: 4000 },
-  { name: "Feb", sales: 3000 },
-  { name: "Mar", sales: 5000 },
-  { name: "Apr", sales: 4500 },
-  { name: "May", sales: 6000 },
-  { name: "Jun", sales: 5500 },
-];
-const statusData = [
-  { name: "Completed", value: 45, color: "#10b981" },
-  { name: "In Progress", value: 30, color: "#3b82f6" },
-  { name: "Pending", value: 15, color: "#f59e0b" },
-  { name: "Cancelled", value: 10, color: "#ef4444" },
-];
+import MonthlySales from "../components/dashboard/MonthlySales";
+import OrderStatus from "../components/dashboard/OrderStatus";
 function Dashboard() {
   const [totalCount, setTotalCount] = useState(0);
   const [activeDealersCount, setActiveDealersCount] = useState(0);
@@ -134,7 +109,7 @@ function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Total Sales Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
-            <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-6">
+            <div className="bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-500 p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-blue-100 uppercase tracking-wider mb-2">
@@ -163,7 +138,7 @@ function Dashboard() {
 
           {/* Active Dealers Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
-            <div className="bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600 p-6">
+            <div className="bg-gradient-to-br from-purple-400 via-purple-500 to-pink-500 p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-purple-100 uppercase tracking-wider mb-2">
@@ -192,7 +167,7 @@ function Dashboard() {
 
           {/* Total Orders Card - Updated to show Column Z count */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
-            <div className="bg-gradient-to-br from-pink-500 via-rose-600 to-red-600 p-6">
+            <div className="bg-gradient-to-br from-pink-400 via-rose-500 to-red-400 p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-pink-100 uppercase tracking-wider mb-2">
@@ -221,7 +196,7 @@ function Dashboard() {
 
           {/* Pending Enquiries Card - Updated to show Column O not null, Column P null count */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
-            <div className="bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 p-6">
+            <div className="bg-gradient-to-br from-amber-400 via-orange-400 to-red-400 p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-amber-100 uppercase tracking-wider mb-2">
@@ -250,113 +225,8 @@ function Dashboard() {
         </div>
         {/* Charts Section */}
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Monthly Sales Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-8 py-6">
-              <h3 className="text-2xl font-bold text-white mb-2">
-                Monthly Sales
-              </h3>
-              <p className="text-blue-50 text-lg">
-                Track your sales performance over time
-              </p>
-            </div>
-            <div className="p-8">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={salesData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#64748b"
-                      fontSize={12}
-                      fontWeight={500}
-                    />
-                    <YAxis stroke="#64748b" fontSize={12} fontWeight={500} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-                        fontWeight: 500,
-                      }}
-                    />
-                    <Bar
-                      dataKey="sales"
-                      fill="url(#salesGradient)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <defs>
-                      <linearGradient
-                        id="salesGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop offset="0%" stopColor="#3b82f6" />
-                        <stop offset="100%" stopColor="#1d4ed8" />
-                      </linearGradient>
-                    </defs>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Order Status Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 px-8 py-6">
-              <h3 className="text-2xl font-bold text-white mb-2">
-                Order Status
-              </h3>
-              <p className="text-purple-50 text-lg">
-                Current distribution of order statuses
-              </p>
-            </div>
-            <div className="p-8">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      stroke="#ffffff"
-                      strokeWidth={2}
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-                        fontWeight: 500,
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        paddingTop: "20px",
-                        fontSize: "14px",
-                        fontWeight: 500,
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
+          <MonthlySales />
+          <OrderStatus />
         </div>
       </div>
     </div>

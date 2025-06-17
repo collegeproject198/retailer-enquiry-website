@@ -26,6 +26,10 @@ function DealerForm() {
   const [isLoadingDealerSizes, setIsLoadingDealerSizes] = useState(true);
   const [errorDealerSizes, setErrorDealerSizes] = useState(null);
 
+  // New state for dealer code generation
+  const [isLoadingDealerCode, setIsLoadingDealerCode] = useState(true);
+  const [errorDealerCode, setErrorDealerCode] = useState(null);
+
   const SPREADSHEET_ID_FOR_DEALER_SIZES =
     "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
   const APPS_SCRIPT_URL_FOR_SUBMISSION =
@@ -83,12 +87,85 @@ function DealerForm() {
     }
   };
 
+  // New function to fetch existing dealer codes and generate next code
+  const generateNextDealerCode = async () => {
+    setIsLoadingDealerCode(true);
+    setErrorDealerCode(null);
+    try {
+      // Assuming FMS sheet has GID 0 (default), you may need to adjust this
+      const FMS_GID = "0"; // Change this to the actual GID of your FMS sheet
+      const response = await fetch(
+        `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID_FOR_DEALER_SIZES}/gviz/tq?tqx=out:json&gid=${FMS_GID}`
+      );
+
+      if (!response.ok) throw new Error(`Failed to fetch dealer data`);
+      const text = await response.text();
+
+      const jsonStart = text.indexOf("{");
+      const jsonEnd = text.lastIndexOf("}");
+      const data = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
+
+      let existingDealerCodes = [];
+      if (data.table.rows.length > 1) {
+        existingDealerCodes = data.table.rows
+          .slice(1)
+          .map((row) => {
+            // Assuming dealer code is in column B (index 1)
+            const dealerCode =
+              row.c[1] && row.c[1].v !== null ? row.c[1].v : "";
+            return dealerCode;
+          })
+          .filter(
+            (code) => code && code.toString().toUpperCase().startsWith("DC")
+          );
+      }
+
+      // Extract numbers from existing dealer codes
+      const existingNumbers = existingDealerCodes
+        .map((code) => {
+          const match = code
+            .toString()
+            .toUpperCase()
+            .match(/DC(\d+)/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter((num) => num > 0);
+
+      // Find the next number
+      const maxNumber =
+        existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
+      const nextNumber = maxNumber + 1;
+
+      // Format as DC01, DC02, etc.
+      const nextDealerCode = `DC${nextNumber.toString().padStart(2, "0")}`;
+
+      setFormData((prev) => ({
+        ...prev,
+        dealerCode: nextDealerCode,
+      }));
+    } catch (err) {
+      console.error(`Error generating dealer code:`, err);
+      setErrorDealerCode(`Failed to generate dealer code: ${err.message}`);
+      // Set a default code if generation fails
+      setFormData((prev) => ({
+        ...prev,
+        dealerCode: "DC01",
+      }));
+    } finally {
+      setIsLoadingDealerCode(false);
+    }
+  };
+
   useEffect(() => {
     fetchMasterDataForDealerSizes();
+    generateNextDealerCode();
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    // Don't allow changing dealer code as it's readonly
+    if (name === "dealerCode") return;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -218,7 +295,9 @@ function DealerForm() {
 
       showToast("Dealer registered successfully!");
 
+      // Reset form and regenerate new dealer code
       setFormData({
+        dealerCode: "", // Will be set by generateNextDealerCode
         stateName: "",
         districtName: "",
         salesPersonName: "",
@@ -228,11 +307,13 @@ function DealerForm() {
         dealerSize: "",
         avgQty: "",
         contactNumber: "",
-        dealerCode: "",
         emailAddress: "",
         dob: "",
         anniversary: "",
       });
+
+      // Generate next dealer code for the next registration
+      generateNextDealerCode();
     } catch (error) {
       console.error("Submission error:", error);
       showToast(`Error submitting form: ${error.message}`, "error");
@@ -311,18 +392,38 @@ function DealerForm() {
                       </p>
                     )}
                   </div>
+
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Dealer Code
+                      <span className="text-xs text-gray-500 ml-2">
+                        (Auto-generated)
+                      </span>
                     </label>
-                    <input
-                      type="tel"
-                      name="dealerCode"
-                      value={formData.dealerCode}
-                      onChange={handleInputChange}
-                      placeholder="Enter Dealer Code "
-                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 text-slate-700 font-medium"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="dealerCode"
+                        value={formData.dealerCode}
+                        readOnly
+                        placeholder={
+                          isLoadingDealerCode
+                            ? "Generating..."
+                            : "Auto-generated dealer code"
+                        }
+                        className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl shadow-sm text-slate-700 font-medium cursor-not-allowed"
+                      />
+                      {isLoadingDealerCode && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                        </div>
+                      )}
+                    </div>
+                    {errorDealerCode && (
+                      <p className="text-amber-500 text-sm mt-2 font-medium">
+                        {errorDealerCode}
+                      </p>
+                    )}
                     {errors.dealerCode && (
                       <p className="text-red-500 text-sm mt-2 font-medium">
                         {errors.dealerCode}
@@ -555,9 +656,11 @@ function DealerForm() {
               <div className="pt-6 border-t border-slate-200">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLoadingDealerCode}
                   className={`w-full lg:w-auto bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] ${
-                    isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                    isSubmitting || isLoadingDealerCode
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                   }`}
                 >
                   {isSubmitting ? "Registering Dealer..." : "Register Dealer"}

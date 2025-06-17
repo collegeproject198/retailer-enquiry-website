@@ -28,8 +28,6 @@ const Attendance = () => {
     reason: "",
   });
 
-  // IMPORTANT: Ensure this URL is the *correct and currently deployed* URL for your Google Apps Script web app.
-  // If you redeploy your script, this URL might change.
   const APPS_SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbw8__1g2ZzS5ChsMo1_eIsUdH-VP3Jd0QaBC2tTTGueSCkdoZsnIlJENIDdJpHo8bFWxw/exec";
 
@@ -87,16 +85,11 @@ const Attendance = () => {
 
       console.log("Row data to be submitted:", rowData);
 
-      // --- Google Sheets submission logic moved here ---
       const payload = {
-        sheetName: "Attendance", // Ensure this matches your sheet name
+        sheetName: "Attendance", // Make sure your sheet tab is named exactly this
         action: "insert",
-        rowData: JSON.stringify(rowData), // Use the rowData prepared above
+        rowData: JSON.stringify(rowData),
       };
-
-      console.log("--- Data being sent to Google Sheets ---");
-      console.log(payload);
-      console.log("---------------------------------------");
 
       const urlEncodedData = new URLSearchParams(payload);
 
@@ -136,17 +129,17 @@ const Attendance = () => {
         };
       }
 
-      console.log("Google Sheets submission response:", result);
-
-      if (!result.success) {
+      // ✅ FIXED: Only show error if explicitly marked as failure
+      if (result && result.success === false) {
         throw new Error(result.error || "Failed to submit to Google Sheets");
       }
-      // --- End of Google Sheets submission logic ---
 
+      // ✅ Show success toast
       showToast(`Your ${formData.status} has been recorded.`);
 
       setAttendance((prev) => [...prev, { ...formData, timestamp }]);
 
+      // ✅ Reset form
       setFormData({
         status: "",
         location: "Mumbai Office",
