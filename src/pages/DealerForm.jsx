@@ -325,16 +325,6 @@ function DealerForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-0 lg:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center lg:text-left">
-          <h1 className="text-3xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2 sm:mb-5 pb-2">
-            Dealer Registration
-          </h1>
-          <p className="text-lg text-slate-600 font-medium">
-            Enter dealer information and details to register a new dealer
-          </p>
-        </div>
-
         {/* Main Form Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
           <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 px-8 py-6">
