@@ -327,7 +327,7 @@ function DealerForm() {
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center lg:text-left">
-          <h1 className="text-3xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-3xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2 sm:mb-5 pb-2">
             Dealer Registration
           </h1>
           <p className="text-lg text-slate-600 font-medium">

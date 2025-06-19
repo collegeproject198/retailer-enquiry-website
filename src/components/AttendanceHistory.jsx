@@ -55,7 +55,7 @@ const AttendanceHistory = () => {
   const [error, setError] = useState(null);
 
   const SPREADSHEET_ID = "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
-  const DISPLAY_COLUMNS = [1, 2, 3, 4, 5, 6, 7];
+  const DISPLAY_COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8];
 
   const fetchAttendanceData = async () => {
     try {

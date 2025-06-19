@@ -289,10 +289,6 @@ const Attendance = () => {
       });
     } catch (error) {
       console.error("Submission error:", error);
-      showToast(
-        `Error submitting attendance: ${error.message || "Unknown error"}`,
-        "error"
-      );
     } finally {
       setIsSubmitting(false);
       setIsGettingLocation(false);
