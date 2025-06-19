@@ -100,6 +100,9 @@ function Sidebar({ userType, username, tabs = [] }) {
             <Link
               key={route.href}
               to={route.href}
+              onClick={() => {
+                if (window.innerWidth < 1024) setIsCollapsed(false);
+              }}
               className={cn(
                 "group flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200",
                 "hover:bg-white/60 hover:shadow-sm hover:scale-[1.02]",
@@ -124,18 +127,11 @@ function Sidebar({ userType, username, tabs = [] }) {
             </Link>
           ))}
         </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200/50">
-          <div className="text-xs text-slate-500 text-center">
-            © 2024 Retail EMS
-          </div>
-        </div>
       </div>
 
       {/* Mobile toggle */}
       <button
-        className="fixed top-4 left-4 z-50 lg:hidden rounded-xl bg-white shadow-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 p-3"
+        className="fixed top-2 left-3 z-50 lg:hidden rounded-xl bg-white shadow-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 p-3"
         onClick={() => setIsCollapsed(true)}
       >
         <Menu className="h-5 w-5" />

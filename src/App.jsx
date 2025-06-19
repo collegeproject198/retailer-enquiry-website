@@ -178,62 +178,79 @@ const App = () => {
             )}
 
             {/* Scrollable Content Area */}
-            <div className="sm:mt-0 mt-12 flex-1 min-h-0 overflow-y-auto px-2 sm:px-6 py-4">
-              <Routes>
-                <Route
-                  path="/login"
-                  element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
-                />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dealer-form"
-                  element={
-                    <ProtectedRoute>
-                      <DealerForm />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/tracker"
-                  element={
-                    <ProtectedRoute>
-                      <Tracker />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/history"
-                  element={
-                    <ProtectedRoute>
-                      <History />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/reports"
-                  element={
-                    <ProtectedRoute>
-                      <Reports />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/attendance"
-                  element={
-                    <ProtectedRoute>
-                      <Attendance />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
+            {/* Scrollable Content Area */}
+            <div className="sm:mt-0 mt-12 flex-1 min-h-0 overflow-y-auto px-2 sm:px-6 py-4 flex flex-col justify-between">
+              <div className="mb-5">
+                <Routes>
+                  <Route
+                    path="/login"
+                    element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
+                  />
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/dealer-form"
+                    element={
+                      <ProtectedRoute>
+                        <DealerForm />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tracker"
+                    element={
+                      <ProtectedRoute>
+                        <Tracker />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/history"
+                    element={
+                      <ProtectedRoute>
+                        <History />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports"
+                    element={
+                      <ProtectedRoute>
+                        <Reports />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/attendance"
+                    element={
+                      <ProtectedRoute>
+                        <Attendance />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </div>
+              {/* Footer */}
+              <footer className=" fixed bottom-0 left-0 w-full bg-gradient-to-r from-green-500 via-blue-500 to-purple-600 text-white text-center py-3 shadow-inner z-50">
+                <p className="text-sm font-medium">
+                  Powered by{" "}
+                  <a
+                    href="https://www.botivate.in/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-yellow-300 transition"
+                  >
+                    Botivate
+                  </a>
+                </p>
+              </footer>
             </div>
           </div>
         </div>
