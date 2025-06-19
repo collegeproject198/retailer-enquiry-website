@@ -1,39 +1,62 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin } from "lucide-react";
-import { format } from "date-fns";
+import { MapPin, Loader2 } from "lucide-react";
+// Using native JavaScript Date methods instead of date-fns
 import AttendanceHistory from "../components/AttendanceHistory";
 
 const Attendance = () => {
   const [attendance, setAttendance] = useState([]);
-  const [inventory, setInventory] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [errors, setErrors] = useState({});
-  const [useCustomLocation, setUseCustomLocation] = useState(false);
-  const predefinedLocations = [
-    "Mumbai Office",
-    "Delhi Office",
-    "Bangalore Office",
-    "Client Site - Andheri",
-    "Client Site - Powai",
-    "Field Work",
-    "Work From Home",
-  ];
+  const [locationData, setLocationData] = useState(null);
+
+  // Helper function to format date to YYYY-MM-DD
+  const formatDateInput = (date) => {
+    return date.toISOString().split("T")[0];
+  };
+
+  // Helper function to format date to DD/MM/YYYY
+  const formatDateDDMMYYYY = (date) => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Helper function to format date and time to DD/MM/YYYY HH:MM:SS
+  const formatDateTime = (date) => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+  };
+
+  // Helper function to format date for display
+  const formatDateDisplay = (date) => {
+    return date.toLocaleDateString("en-GB", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const [formData, setFormData] = useState({
     status: "",
-    location: "Mumbai Office",
-    startDate: format(new Date(), "yyyy-MM-dd"),
+    startDate: formatDateInput(new Date()),
     endDate: "",
     reason: "",
   });
 
   const APPS_SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbw8__1g2ZzS5ChsMo1_eIsUdH-VP3Jd0QaBC2tTTGueSCkdoZsnIlJENIDdJpHo8bFWxw/exec";
-
-  useEffect(() => {
-    setInventory(predefinedLocations);
-  }, []);
 
   const showToast = (message, type = "success") => {
     const toast = document.createElement("div");
@@ -45,16 +68,88 @@ const Attendance = () => {
     setTimeout(() => document.body.removeChild(toast), 3000);
   };
 
+  // Function to get formatted address using reverse geocoding
+  const getFormattedAddress = async (latitude, longitude) => {
+    try {
+      // Using a free geocoding service (Nominatim)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+      );
+      const data = await response.json();
+
+      if (data && data.display_name) {
+        return data.display_name;
+      } else {
+        return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      }
+    } catch (error) {
+      console.error("Error getting formatted address:", error);
+      return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    }
+  };
+
+  // Function to get user's current location
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by this browser."));
+        return;
+      }
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          const mapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+          // Get proper formatted address
+          const formattedAddress = await getFormattedAddress(
+            latitude,
+            longitude
+          );
+
+          const locationInfo = {
+            latitude,
+            longitude,
+            mapLink,
+            formattedAddress,
+            timestamp: new Date().toISOString(),
+            accuracy: position.coords.accuracy,
+          };
+
+          resolve(locationInfo);
+        },
+        (error) => {
+          const errorMessages = {
+            1: "Location permission denied. Please enable location services.",
+            2: "Location information unavailable.",
+            3: "Location request timed out.",
+          };
+          reject(
+            new Error(errorMessages[error.code] || "An unknown error occurred.")
+          );
+        },
+        options
+      );
+    });
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.status) newErrors.status = "Status is required";
-    if (!formData.location) newErrors.location = "Location is required";
     if (formData.status === "Leave") {
       if (!formData.startDate) newErrors.startDate = "Start date is required";
       if (!formData.reason) newErrors.reason = "Reason is required for leave";
     }
 
+    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -62,31 +157,76 @@ const Attendance = () => {
     e.preventDefault();
     console.log("Submit button clicked!");
 
-    const formIsValid = validateForm();
-    if (!formIsValid) {
-      setErrors(validateForm());
+    if (!validateForm()) {
       return;
     }
-    setErrors({});
 
     setIsSubmitting(true);
+    setIsGettingLocation(true);
 
     try {
-      const timestamp = new Date().toISOString();
+      // Get current location for all statuses (IN/OUT/LEAVE)
+      let currentLocation = null;
+      try {
+        currentLocation = await getCurrentLocation();
+        console.log("Location captured:", currentLocation);
+      } catch (locationError) {
+        console.error("Location error:", locationError);
+        showToast(locationError.message, "error");
+        setIsSubmitting(false);
+        setIsGettingLocation(false);
+        return;
+      }
 
-      const rowData = [
-        timestamp,
-        formData.startDate,
-        formData.endDate,
-        formData.status,
-        formData.location,
-        formData.reason,
-      ];
+      setIsGettingLocation(false);
+
+      const currentDate = new Date();
+      const timestamp = formatDateTime(currentDate);
+      const dateOnly = formatDateDDMMYYYY(currentDate);
+
+      let rowData = [];
+
+      // Prepare data based on status
+      if (formData.status === "IN" || formData.status === "OUT") {
+        // For IN/OUT: Columns A,B,D,F,G,H,I
+        rowData = [
+          timestamp, // Column A - Timestamp
+          dateOnly, // Column B - Date
+          "", // Column C - Empty for IN/OUT
+          formData.status, // Column D - Status
+          "", // Column E - Empty for IN/OUT
+          currentLocation.latitude, // Column F - Latitude
+          currentLocation.longitude, // Column G - Longitude
+          currentLocation.mapLink, // Column H - Map Link
+          currentLocation.formattedAddress, // Column I - Formatted Address
+        ];
+      } else if (formData.status === "Leave") {
+        // For LEAVE: Columns A,B,C,D,E,F,G,H,I
+        // Convert start and end dates from YYYY-MM-DD to DD/MM/YYYY format
+        const startDateFormatted = formData.startDate
+          ? formatDateDDMMYYYY(new Date(formData.startDate + "T00:00:00"))
+          : "";
+        const endDateFormatted = formData.endDate
+          ? formatDateDDMMYYYY(new Date(formData.endDate + "T00:00:00"))
+          : "";
+
+        rowData = [
+          timestamp, // Column A - Timestamp
+          startDateFormatted, // Column B - Start Date (DD/MM/YYYY)
+          endDateFormatted, // Column C - End Date (DD/MM/YYYY)
+          formData.status, // Column D - Status
+          formData.reason, // Column E - Reason
+          currentLocation.latitude, // Column F - Latitude
+          currentLocation.longitude, // Column G - Longitude
+          currentLocation.mapLink, // Column H - Map Link
+          currentLocation.formattedAddress, // Column I - Formatted Address
+        ];
+      }
 
       console.log("Row data to be submitted:", rowData);
 
       const payload = {
-        sheetName: "Attendance", // Make sure your sheet tab is named exactly this
+        sheetName: "Attendance",
         action: "insert",
         rowData: JSON.stringify(rowData),
       };
@@ -129,25 +269,24 @@ const Attendance = () => {
         };
       }
 
-      // ✅ FIXED: Only show error if explicitly marked as failure
       if (result && result.success === false) {
         throw new Error(result.error || "Failed to submit to Google Sheets");
       }
 
-      // ✅ Show success toast
-      showToast(`Your ${formData.status} has been recorded.`);
+      showToast(`Your ${formData.status} has been recorded successfully!`);
 
-      setAttendance((prev) => [...prev, { ...formData, timestamp }]);
+      setAttendance((prev) => [
+        ...prev,
+        { ...formData, timestamp, location: currentLocation },
+      ]);
 
-      // ✅ Reset form
+      // Reset form
       setFormData({
         status: "",
-        location: "Mumbai Office",
-        startDate: format(new Date(), "yyyy-MM-dd"),
+        startDate: formatDateInput(new Date()),
         endDate: "",
         reason: "",
       });
-      setUseCustomLocation(false);
     } catch (error) {
       console.error("Submission error:", error);
       showToast(
@@ -156,6 +295,7 @@ const Attendance = () => {
       );
     } finally {
       setIsSubmitting(false);
+      setIsGettingLocation(false);
     }
   };
 
@@ -173,17 +313,19 @@ const Attendance = () => {
       }));
     }
   };
+
   const showLeaveFields = formData.status === "Leave";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-0 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center lg:text-left">
-          <h1 className="pb-3 text-4xl lg:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
+          <h1 className="pb-3 text-3xl lg:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
             Attendance Management
           </h1>
           <p className="text-lg text-slate-600 font-medium">
-            Mark your attendance and manage your work schedule
+            Mark your attendance with automatic location detection
           </p>
         </div>
 
@@ -197,10 +339,9 @@ const Attendance = () => {
               Record your daily attendance or apply for leave
             </p>
           </div>
+
           <form onSubmit={handleSubmit} className="space-y-8 p-8">
-            {" "}
-            {/* Added p-8 for padding */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-1">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-slate-700 mb-3">
                   Status
@@ -222,71 +363,38 @@ const Attendance = () => {
                   </p>
                 )}
               </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-700 mb-3">
-                  Location
-                </label>
-                {useCustomLocation ? (
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      placeholder="Enter your location"
-                      className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 text-slate-700 font-medium"
-                    />
-                    <button
-                      type="button"
-                      className="px-4 py-3 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-700"
-                      onClick={() => setUseCustomLocation(false)}
-                    >
-                      <MapPin className="h-5 w-5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-3">
-                    <select
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      disabled={showLeaveFields}
-                      className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 text-slate-700 font-medium disabled:bg-slate-50 disabled:text-slate-400"
-                    >
-                      {predefinedLocations.map((location) => (
-                        <option key={location} value={location}>
-                          {location}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="px-4 py-3 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={() => setUseCustomLocation(true)}
-                      disabled={showLeaveFields}
-                    >
-                      <MapPin className="h-5 w-5" />
-                    </button>
-                  </div>
-                )}
-                {errors.location && (
-                  <p className="text-red-500 text-sm mt-2 font-medium">
-                    {errors.location}
-                  </p>
-                )}
-              </div>
             </div>
+
             {!showLeaveFields && (
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-100">
                 <div className="text-sm font-semibold text-emerald-700 mb-2">
                   Current Date & Time
                 </div>
-                <div className="text-2xl font-bold text-emerald-800">
-                  {format(new Date(), "PPP p")}
+                <div className="text-sm sm:text-2xl font-bold text-emerald-800">
+                  {formatDateDisplay(new Date())}
+                </div>
+                {(formData.status === "IN" || formData.status === "OUT") && (
+                  <div className="mt-3 text-sm text-emerald-600">
+                    📍 Location will be automatically captured when you submit
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showLeaveFields && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-0 sm:p-6 border border-amber-100 mb-6">
+                <div className="text-sm font-semibold text-amber-700 mb-2">
+                  Leave Application
+                </div>
+                <div className="text-lg font-bold text-amber-800">
+                  {formatDateDisplay(new Date())}
+                </div>
+                <div className="mt-3 text-sm text-amber-600">
+                  📍 Current location will be captured for leave application
                 </div>
               </div>
             )}
+
             {showLeaveFields && (
               <div className="space-y-6">
                 <div className="grid gap-6 lg:grid-cols-2">
@@ -342,18 +450,28 @@ const Attendance = () => {
                 </div>
               </div>
             )}
+
             <button
               type="submit"
-              className="w-full lg:w-auto bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-              disabled={isSubmitting}
+              className="w-full lg:w-auto bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              disabled={isSubmitting || isGettingLocation}
             >
-              {isSubmitting
-                ? showLeaveFields
-                  ? "Submitting Leave..."
-                  : "Marking Attendance..."
-                : showLeaveFields
-                ? "Submit Leave Request"
-                : "Mark Attendance"}
+              {isGettingLocation ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Getting Location...
+                </span>
+              ) : isSubmitting ? (
+                showLeaveFields ? (
+                  "Submitting Leave..."
+                ) : (
+                  "Marking Attendance..."
+                )
+              ) : showLeaveFields ? (
+                "Submit Leave Request"
+              ) : (
+                "Mark Attendance"
+              )}
             </button>
           </form>
         </div>

@@ -68,13 +68,13 @@ function OrderStatus() {
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
       <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 px-8 py-6">
-        <h3 className="text-2xl font-bold text-white mb-2">Order Status</h3>
-        <p className="text-purple-50 text-lg">
+        <h3 className="md:text-2xl font-bold text-white mb-2">Order Status</h3>
+        <p className="text-purple-50 md:text-lg">
           Current distribution of order statuses
         </p>
       </div>
-      <div className="p-8">
-        <div className="h-80">
+      <div className="p-4 sm:p-8">
+        <div className="h-64 sm:h-80 ">
           {isLoading ? (
             <div className="text-center text-slate-500 pt-20 text-lg">
               Loading chart...
@@ -87,7 +87,7 @@ function OrderStatus() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  outerRadius={100}
+                  outerRadius="70%" // Responsive radius (relative instead of 100px)
                   fill="#8884d8"
                   dataKey="value"
                   stroke="#ffffff"
@@ -107,8 +107,11 @@ function OrderStatus() {
                   }}
                 />
                 <Legend
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
                   wrapperStyle={{
-                    paddingTop: "20px",
+                    paddingTop: "16px",
                     fontSize: "14px",
                     fontWeight: 500,
                   }}

@@ -19,7 +19,7 @@ const Tracker = () => {
   const [selectedIndent, setSelectedIndent] = useState(null);
 
   const SPREADSHEET_ID = "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
-  const DISPLAY_COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8];
+  const DISPLAY_COLUMNS = [1, 4, 3, 9, 7];
 
   const fetchSheetData = async (sheetName) => {
     console.log(`🔄 Fetching data from ${sheetName} sheet...`);
@@ -253,26 +253,11 @@ const Tracker = () => {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50 p-4 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50 p-3 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            <div>
-              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-green-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
-                Dealer Tracker
-              </h1>
-              <p className="text-lg text-slate-600 font-medium">
-                Track and update dealer interactions
-              </p>
-            </div>
-            <button className="bg-gradient-to-r from-green-600 via-teal-600 to-cyan-600 hover:from-green-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3">
-              <Plus className="h-5 w-5" /> Add New Dealer
-            </button>
-          </div>
-
           {/* Main Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-500 via-teal-500 to-cyan-500 px-8 py-6">
+            <div className="bg-gradient-to-r from-green-500 via-teal-500 to-cyan-500 px-2 sm:px-8 py-2 sm:py-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">
@@ -282,7 +267,7 @@ const Tracker = () => {
                     Comprehensive view of all dealer interactions and follow-ups
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     onClick={refreshData}
                     className="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2"
@@ -300,7 +285,7 @@ const Tracker = () => {
                 </div>
               </div>
             </div>
-            <div className="p-8">
+            <div className="p-2 sm:p-8">
               <div className="flex items-center mb-6">
                 <div className="relative w-full max-w-md">
                   <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />

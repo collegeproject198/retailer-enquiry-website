@@ -123,50 +123,71 @@ function MonthlySales() {
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-8 py-6">
-        <h3 className="text-2xl font-bold text-white mb-2">Monthly Sales</h3>
-        <p className="text-blue-50 text-lg">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden w-full max-w-4xl mx-auto">
+      <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-6 sm:px-8 py-6">
+        <h3 className="md:text-2xl font-bold text-white mb-2">Monthly Sales</h3>
+        <p className="text-blue-50 md:text-lg">
           Track your sales performance over time
         </p>
       </div>
-      <div className="p-8">
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={salesData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis
-                dataKey="name"
-                stroke="#64748b"
-                fontSize={12}
-                fontWeight={500}
-              />
-              <YAxis stroke="#64748b" fontSize={12} fontWeight={500} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "white",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-                  fontWeight: 500,
+      <div className="w-full px-2 sm:px-4 md:px-6 py-4">
+        <div className="bg-white rounded-lg sm:rounded-xl md:rounded-2xl shadow-sm sm:shadow-md p-3 sm:p-4 md:p-6">
+          <div className="w-full h-48 xs:h-56 sm:h-64 md:h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={salesData}
+                margin={{
+                  top: 10,
+                  right: window.innerWidth < 640 ? 0 : 20,
+                  left: window.innerWidth < 640 ? 0 : 10,
+                  bottom: window.innerWidth < 640 ? 15 : 5,
                 }}
-              />
-              <Bar
-                dataKey="sales"
-                fill="url(#salesGradient)"
-                radius={[4, 4, 0, 0]}
-              />
-              <defs>
-                <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#1d4ed8" />
-                </linearGradient>
-              </defs>
-            </BarChart>
-          </ResponsiveContainer>
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="name"
+                  stroke="#64748b"
+                  fontSize={window.innerWidth < 640 ? 10 : 12}
+                  fontWeight={500}
+                  tickMargin={window.innerWidth < 640 ? 5 : 10}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  fontSize={window.innerWidth < 640 ? 10 : 12}
+                  fontWeight={500}
+                  width={window.innerWidth < 640 ? 30 : 40}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    fontWeight: 500,
+                    fontSize: window.innerWidth < 640 ? "12px" : "14px",
+                  }}
+                />
+                <Bar
+                  dataKey="sales"
+                  fill="url(#salesGradient)"
+                  radius={[4, 4, 0, 0]}
+                  barSize={window.innerWidth < 640 ? 20 : 30}
+                />
+                <defs>
+                  <linearGradient
+                    id="salesGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#1d4ed8" />
+                  </linearGradient>
+                </defs>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

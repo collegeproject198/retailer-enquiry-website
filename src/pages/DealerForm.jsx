@@ -323,11 +323,11 @@ function DealerForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-0 lg:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center lg:text-left">
-          <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-3xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3">
             Dealer Registration
           </h1>
           <p className="text-lg text-slate-600 font-medium">
@@ -345,16 +345,11 @@ function DealerForm() {
               Fill in the details about the dealer and sales person
             </p>
           </div>
-          <div className="p-8">
+          <div className=" p-2 lg:p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Location Information */}
               <div className="space-y-6">
-                <div className="border-l-4 border-purple-500 pl-6">
-                  <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                    Location Information
-                  </h4>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-6 md:grid-cols-3">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
                       State Name
@@ -435,12 +430,7 @@ function DealerForm() {
 
               {/* Personal Information */}
               <div className="space-y-6">
-                <div className="border-l-4 border-blue-500 pl-6">
-                  <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                    Personal Information
-                  </h4>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-6 md:grid-cols-3">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Sales Person Name
@@ -478,8 +468,6 @@ function DealerForm() {
                       </p>
                     )}
                   </div>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Contact Number
@@ -498,6 +486,8 @@ function DealerForm() {
                       </p>
                     )}
                   </div>
+                </div>
+                <div className="grid gap-6 md:grid-cols-3">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Email Address
@@ -557,48 +547,44 @@ function DealerForm() {
 
               {/* Business Information */}
               <div className="space-y-6">
-                <div className="border-l-4 border-indigo-500 pl-6">
-                  <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                    Business Information
-                  </h4>
-                </div>
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      About Dealer
-                    </label>
-                    <textarea
-                      name="aboutDealer"
-                      value={formData.aboutDealer}
-                      onChange={handleInputChange}
-                      placeholder="Enter information about the dealer"
-                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 text-slate-700 font-medium min-h-24 resize-none"
-                    />
-                    {errors.aboutDealer && (
-                      <p className="text-red-500 text-sm mt-2 font-medium">
-                        {errors.aboutDealer}
-                      </p>
-                    )}
-                  </div>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                        About Dealer
+                      </label>
+                      <textarea
+                        name="aboutDealer"
+                        value={formData.aboutDealer}
+                        onChange={handleInputChange}
+                        placeholder="Enter information about the dealer"
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 text-slate-700 font-medium min-h-24 resize-none"
+                      />
+                      {errors.aboutDealer && (
+                        <p className="text-red-500 text-sm mt-2 font-medium">
+                          {errors.aboutDealer}
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      Address
-                    </label>
-                    <textarea
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      placeholder="Enter dealer address"
-                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 text-slate-700 font-medium min-h-24 resize-none"
-                    />
-                    {errors.address && (
-                      <p className="text-red-500 text-sm mt-2 font-medium">
-                        {errors.address}
-                      </p>
-                    )}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                        Address
+                      </label>
+                      <textarea
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        placeholder="Enter dealer address"
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 text-slate-700 font-medium min-h-24 resize-none"
+                      />
+                      {errors.address && (
+                        <p className="text-red-500 text-sm mt-2 font-medium">
+                          {errors.address}
+                        </p>
+                      )}
+                    </div>
                   </div>
-
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-slate-700 mb-3">

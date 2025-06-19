@@ -145,14 +145,13 @@ const App = () => {
     >
       <Router>
         <div className="flex h-screen bg-gray-50 text-gray-900">
-          {/* Sidebar */}
           {isAuthenticated && (
-            <div className="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white z-20 shadow-lg">
+            <div className=" md:fixed md:inset-y-0 md:left-0 md:w-64 md:bg-gray-800 md:text-white md:z-20 md:shadow-lg">
               <Sidebar
                 logout={logout}
                 userType={userType}
                 username={currentUser?.username}
-                tabs={tabs} // Pass tabs to Sidebar
+                tabs={tabs}
               />
             </div>
           )}
@@ -160,7 +159,7 @@ const App = () => {
           {/* Main Content Wrapper */}
           <div
             className={`flex flex-col flex-1 overflow-hidden ${
-              isAuthenticated ? "ml-64" : ""
+              isAuthenticated ? "md:ml-64" : ""
             }`}
           >
             {/* Notification bar */}
@@ -179,7 +178,7 @@ const App = () => {
             )}
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            <div className="sm:mt-0 mt-12 flex-1 min-h-0 overflow-y-auto px-2 sm:px-6 py-4">
               <Routes>
                 <Route
                   path="/login"

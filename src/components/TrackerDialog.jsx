@@ -117,33 +117,31 @@ export default function TrackerDialog({
     setIsSubmitting(true);
 
     try {
-      const timestamp = new Date().toISOString();
-
-      // Get Dealer Code from selected item (assuming it's in col1 based on your tracker display)
+      // Get Dealer Code from selected item
       const dealerCode = dealerData?.col1 || "";
 
-      // Create row data array with proper column mapping
-      const rowData = [
-        timestamp, // Column A - Timestamp
-        dealerCode, // Column B - Dealer Code (from selected item)
-        formData.lastDateOfCall, // Column C - Last Date of Call
-        formData.status, // Column G - Status
-        formData.stage, // Column H - Stage
-        formData.customerFeedback, // Column F - Customer Feedback
-        formData.nextAction, // Column I - Next Action
-        formData.nextCallDate, // Column J - Next Call Date
-        formData.orderQty, // Column D - Order Qty
-        formData.orderedProducts, // Column E - Ordered Products
-        formData.valueOfOrder, // Column K - Value of Order
-      ];
+      if (!dealerCode) {
+        throw new Error("Dealer code is missing");
+      }
 
-      console.log("Row data to be submitted:", rowData);
-      console.log("Dealer Code being submitted:", dealerCode);
+      console.log("Dealer Code to update:", dealerCode);
 
+      // Create the payload to update the FMS sheet
       const payload = {
-        sheetName: "Tracking History",
-        action: "insert",
-        rowData: JSON.stringify(rowData),
+        sheetName: "FMS",
+        action: "updateByDealerCode", // New action for updating by dealer code
+        dealerCode: dealerCode,
+        updateData: JSON.stringify({
+          lastDateOfCall: formData.lastDateOfCall, // Column R (18)
+          status: formData.status, // Column S (19)
+          stage: formData.stage, // Column T (20)
+          customerFeedback: formData.customerFeedback, // Column U (21)
+          nextAction: formData.nextAction, // Column V (22)
+          nextCallDate: formData.nextCallDate, // Column W (23)
+          orderQty: formData.orderQty, // Column X (24)
+          orderedProducts: formData.orderedProducts, // Column Y (25)
+          valueOfOrder: formData.valueOfOrder, // Column Z (26)
+        }),
       };
 
       console.log("--- Data being sent to Google Sheets ---");
@@ -164,7 +162,7 @@ export default function TrackerDialog({
       console.log("Request sent to Google Sheets (no-cors mode)");
 
       toast.success(
-        `Tracking data for ${dealerCode} has been recorded successfully!`,
+        `Tracking data for ${dealerCode} has been updated successfully!`,
         {
           position: "top-right",
         }
@@ -178,7 +176,7 @@ export default function TrackerDialog({
         error.message.includes("Failed to fetch")
       ) {
         toast.success(
-          `Tracking data has been recorded. (Note: CORS error, but data likely submitted)`,
+          `Tracking data has been updated. (Note: CORS error, but data likely submitted)`,
           {
             position: "top-right",
             duration: 5000,
@@ -187,7 +185,7 @@ export default function TrackerDialog({
         onClose();
       } else {
         toast.error(
-          `Error submitting data: ${error.message || "Unknown error"}`,
+          `Error updating data: ${error.message || "Unknown error"}`,
           { position: "top-right" }
         );
       }
