@@ -321,8 +321,8 @@ export default function TrackerDialog({
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 text-slate-700 font-medium"
                   >
                     <option value="">Select status</option>
-                    {statuses.map((status) => (
-                      <option key={status} value={status}>
+                    {statuses.map((status, index) => (
+                      <option key={`status-${index}`} value={status}>
                         {status}
                       </option>
                     ))}
@@ -334,6 +334,7 @@ export default function TrackerDialog({
                   )}
                 </div>
 
+                {/* Stage Dropdown */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700 mb-3">
                     Stage
@@ -345,8 +346,8 @@ export default function TrackerDialog({
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 text-slate-700 font-medium"
                   >
                     <option value="">Select stage</option>
-                    {stages.map((stage) => (
-                      <option key={stage} value={stage}>
+                    {stages.map((stage, index) => (
+                      <option key={`stage-${index}`} value={stage}>
                         {stage}
                       </option>
                     ))}

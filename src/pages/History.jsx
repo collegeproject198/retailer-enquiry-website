@@ -3,87 +3,127 @@
 import { useState, useEffect } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { DownloadIcon, FilterIcon, SearchIcon, Eye, X } from "lucide-react";
-import Login from "./Login";
+
+const formatDate = (value) => {
+  if (!value) return "—";
+
+  if (typeof value === "string" && value.startsWith("Date(")) {
+    try {
+      const dateParts = value.match(/Date\((\d+),(\d+),(\d+)\)/);
+      if (dateParts && dateParts.length === 4) {
+        const year = parseInt(dateParts[1]);
+        const month = parseInt(dateParts[2]);
+        const day = parseInt(dateParts[3]);
+        const date = new Date(year, month, day);
+        return date.toLocaleDateString("en-GB");
+      }
+    } catch (e) {
+      console.error("Error parsing Date() string:", e);
+    }
+  }
+
+  if (typeof value === "string" && value.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-GB");
+    }
+    return value;
+  }
+
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-GB");
+};
 
 const History = () => {
   const [indents, setIndents] = useState([]);
-  const [selectedIndent, setSelectedIndent] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [col2Filter, setCol2Filter] = useState("");
   const [col4Filter, setCol4Filter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [sheetHeaders, setSheetHeaders] = useState([]);
+  const [sheetHeaders, setSheetHeaders] = useState(true);
   const [error, setError] = useState(null);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
-  const SPREADSHEET_ID = "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
-  const DISPLAY_COLUMNS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11];
+  const [selectedIndent, setSelectedIndent] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Function to fetch data only from FMS sheet
-  const fetchFMSData = async () => {
+  const SPREADSHEET_ID = "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
+  const DISPLAY_COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8];
+  const attendenceData = [
+    { id: "col1", label: "Dealer Code" },
+    { id: "col2", label: "State Name" },
+    { id: "col3", label: "District Name" },
+    { id: "col4", label: "Sales Person Name" },
+    { id: "col5", label: "Dealer Name" },
+    { id: "col6", label: "About Dealer" },
+    { id: "col7", label: "Address" },
+    { id: "col8", label: "Dealer Size" },
+  ];
+  const fetchAttendanceData = async () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      console.log("🔄 Fetching data from History sheet...");
 
       const response = await fetch(
         `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=FMS`
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch History data: ${response.status}`);
+        throw new Error(`Failed to fetch data: ${response.status}`);
       }
 
       const text = await response.text();
       const jsonStart = text.indexOf("{");
       const jsonEnd = text.lastIndexOf("}");
-
       if (jsonStart === -1 || jsonEnd === -1) {
-        throw new Error("Invalid response format from History sheet");
+        throw new Error("Invalid response format");
       }
 
       const data = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
 
-      if (!data.table || !data.table.rows) {
-        throw new Error("No table data found in History sheet");
-      }
-
-      console.log("✅ History data loaded successfully");
-
-      // Process History headers
-      const fmsHeaders = [];
-
-      if (data.table.cols) {
+      // Set headers from cols (not from rows)
+      const headers = [];
+      if (data.table?.cols) {
         data.table.cols.forEach((col, index) => {
-          const label = col.label || `Column ${index}`;
           if (DISPLAY_COLUMNS.includes(index)) {
-            fmsHeaders.push({ id: `col${index}`, label });
+            headers.push({
+              id: `col${index}`,
+              label: col.label || `Column ${index + 1}`,
+            });
           }
         });
       }
+      setSheetHeaders(headers);
 
-      setSheetHeaders(fmsHeaders);
+      // Process data rows (skip row 0 if it contains headers)
+      const items = [];
+      if (data.table?.rows) {
+        // Start from row 1 if first row contains headers
+        const startRow =
+          headers.length > 0 && headers[0].label === data.table.rows[0]?.c[0]?.v
+            ? 1
+            : 0;
 
-      // Process History data rows
-      const fmsItems = data.table.rows.map((row, rowIndex) => {
-        const itemObj = {
-          _id: `${rowIndex}-${Math.random().toString(36).substr(2, 9)}`,
-          _rowIndex: rowIndex + 1,
-        };
+        data.table.rows.slice(startRow).forEach((row, rowIndex) => {
+          const item = {
+            _id: `${rowIndex}-${Math.random().toString(36).substr(2, 9)}`,
+            _rowIndex: rowIndex + startRow + 1,
+          };
+          if (row.c) {
+            row.c.forEach((cell, i) => {
+              item[`col${i}`] = cell?.v ?? cell?.f ?? "";
+            });
+          }
+          items.push(item);
+        });
+      }
 
-        if (row.c) {
-          row.c.forEach((cell, i) => {
-            itemObj[`col${i}`] = cell?.v ?? cell?.f ?? "";
-          });
-        }
-
-        return itemObj;
-      });
-
-      // Filter out empty rows
-      const filteredItems = fmsItems.filter((item) => {
+      const filteredItems = items.filter((item) => {
         return DISPLAY_COLUMNS.some((colIndex) => {
           const value = item[`col${colIndex}`];
           return value && String(value).trim() !== "";
@@ -91,14 +131,17 @@ const History = () => {
       });
 
       setIndents(filteredItems);
-      toast.success(` ${filteredItems.length} History successfully fetched `, {
-        duration: 3000,
-        position: "top-right",
-      });
+
+      if (filteredItems.length > 0) {
+        toast.success(`${filteredItems.length} records loaded`, {
+          duration: 3000,
+          position: "top-right",
+        });
+      }
     } catch (err) {
-      console.error("❌ Error fetching History data:", err);
+      console.error("Error fetching data:", err);
       setError(err.message);
-      toast.error(`Failed to load History data: ${err.message}`, {
+      toast.error(`Failed to load data: ${err.message}`, {
         duration: 4000,
         position: "top-right",
       });
@@ -108,7 +151,7 @@ const History = () => {
   };
 
   useEffect(() => {
-    fetchFMSData();
+    fetchAttendanceData();
   }, []);
 
   const filteredIndents = indents.filter((item) => {
@@ -116,30 +159,21 @@ const History = () => {
     const col2Val = String(item.col2 || "").toLowerCase();
     const col4Val = String(item.col4 || "").toLowerCase();
 
-    // Search term filter
     const matchesSearchTerm = DISPLAY_COLUMNS.some((colIndex) => {
       const value = item[`col${colIndex}`];
       return value && String(value).toLowerCase().includes(term);
     });
 
-    // col2 filter
     const matchesCol2 = col2Filter
       ? col2Val.includes(col2Filter.toLowerCase())
       : true;
 
-    // col4 filter
     const matchesCol4 = col4Filter
       ? col4Val.includes(col4Filter.toLowerCase())
       : true;
 
     return matchesSearchTerm && matchesCol2 && matchesCol4;
   });
-
-  // const refreshData = () => {
-  //   console.log("🔄 Refreshing History data...");
-  //   fetchFMSData();
-  // };
-
   const exportData = () => {
     try {
       const csvContent = [
@@ -185,55 +219,11 @@ const History = () => {
       });
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Loading History data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-red-500 mb-4">
-            <svg
-              className="w-12 h-12 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Error Loading History Data
-          </h3>
-          <p className="text-red-600 font-medium mb-4">{error}</p>
-          <button
-            onClick={fetchFMSData}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  console.log(filteredIndents, "filteredIndents");
   return (
     <>
       <Toaster position="top-right" />
+
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -358,63 +348,82 @@ const History = () => {
 
               <div className="rounded-md border overflow-auto">
                 <table className="w-full caption-bottom text-sm">
-                  <thead className="[&_tr]:border-b">
-                    <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                      {sheetHeaders.map((header) => (
-                        <th
-                          key={header.id}
-                          className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 whitespace-nowrap"
-                        >
-                          {header.label}
-                        </th>
-                      ))}
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 whitespace-nowrap">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-slate-200">
-                    {filteredIndents.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={sheetHeaders.length + 1}
-                          className="px-6 py-12 text-center text-slate-500 font-medium"
-                        >
-                          {searchTerm || col2Filter || col4Filter
-                            ? "No results found for your current filters."
-                            : "No data found in History sheet."}
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredIndents.map((item) => (
-                        <tr
-                          key={item._id}
-                          className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                        >
-                          {sheetHeaders.map((header) => (
-                            <td
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
+                        <tr>
+                          {attendenceData.map((header) => (
+                            <th
                               key={header.id}
-                              className="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                              className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
                             >
-                              {item[header.id] || "—"}
-                            </td>
+                              {header.label}
+                            </th>
                           ))}
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
-                              onClick={() => {
-                                console.log("👁️ Viewing item:", item);
-                                setSelectedIndent(item);
-                                setIsDialogOpen(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </td>
+                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 whitespace-nowrap">
+                            Action
+                          </th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-slate-200">
+                        {isLoading ? (
+                          <tr>
+                            <td
+                              colSpan={sheetHeaders.length + 1}
+                              className="px-6 py-12 text-center"
+                            >
+                              <div className="flex justify-center">
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : filteredIndents.length <= 1 ? (
+                          <tr>
+                            <td
+                              colSpan={sheetHeaders.length + 1}
+                              className="px-6 py-12 text-center text-slate-500 font-medium"
+                            >
+                              {error
+                                ? `Error: ${error}`
+                                : "No attendance records found"}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredIndents.map((item) => (
+                            <tr
+                              key={item._id}
+                              className="hover:bg-slate-50 transition-colors duration-150"
+                            >
+                              {sheetHeaders.map((header, idx) => (
+                                <td
+                                  key={`${item._id}-${header.id}-${idx}`}
+                                  className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900"
+                                >
+                                  {header.id === "col1" || header.id === "col2"
+                                    ? formatDate(item[header.id])
+                                    : item[header.id] || "—"}
+                                </td>
+                              ))}
+
+                              {/* 👁️ View button as the last column */}
+                              <td className="px-6 py-4 text-right">
+                                <button
+                                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+                                  onClick={() => {
+                                    console.log("👁️ Viewing item:", item);
+                                    setSelectedIndent(item);
+                                    setIsDialogOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </table>
               </div>
             </div>

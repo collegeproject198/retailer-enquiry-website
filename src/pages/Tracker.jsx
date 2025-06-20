@@ -7,19 +7,26 @@ import { DownloadIcon, FilterIcon, SearchIcon, Plus, Eye } from "lucide-react";
 import TrackerDialog from "../components/TrackerDialog";
 
 const Tracker = () => {
-  const [indents, setIndents] = useState([]); // This will now only hold FMS data
-  const [masterSheetData, setMasterSheetData] = useState([]); // New state for Master sheet data
+  const [indents, setIndents] = useState([]);
+  const [masterSheetData, setMasterSheetData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [col2Filter, setCol2Filter] = useState("");
   const [col4Filter, setCol4Filter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [sheetHeaders, setSheetHeaders] = useState([]);
   const [error, setError] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // Initialized to false
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIndent, setSelectedIndent] = useState(null);
 
   const SPREADSHEET_ID = "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
   const DISPLAY_COLUMNS = [1, 4, 3, 9, 7];
+  const trackerData = [
+    { id: "col1", label: "Dealer Code" },
+    { id: "col4", label: "District Name" },
+    { id: "col3", label: "Sales Person Name" },
+    { id: "col9", label: "Avg Qty" },
+    { id: "col7", label: "Address" },
+  ];
 
   const fetchSheetData = async (sheetName) => {
     console.log(`🔄 Fetching data from ${sheetName} sheet...`);
@@ -35,11 +42,10 @@ const Tracker = () => {
     console.log(`Raw response text from ${sheetName}:`, text);
     const jsonStart = text.indexOf("{");
     const jsonEnd = text.lastIndexOf("}");
-    console.log(`JSON start: ${jsonStart}, JSON end: ${jsonEnd}`);
 
     if (jsonStart === -1 || jsonEnd === -1) {
       throw new Error(
-        `Invalid response format from ${sheetName} sheet. Could not find JSON boundaries. Raw text might be an error page or unexpected format.`
+        `Invalid response format from ${sheetName} sheet. Could not find JSON boundaries.`
       );
     }
 
@@ -58,8 +64,14 @@ const Tracker = () => {
       setError(null);
 
       const [fmsData, masterData] = await Promise.all([
-        fetchSheetData("FMS"),
-        fetchSheetData("Master"),
+        fetchSheetData("FMS").catch((err) => {
+          console.error("Error fetching FMS data:", err);
+          throw new Error(`FMS sheet: ${err.message}`);
+        }),
+        fetchSheetData("Master").catch((err) => {
+          console.error("Error fetching Master data:", err);
+          throw new Error(`Master sheet: ${err.message}`);
+        }),
       ]);
 
       const newHeaders = [];
@@ -74,16 +86,18 @@ const Tracker = () => {
       setSheetHeaders(newHeaders);
 
       const processRows = (dataRows) => {
-        return dataRows.map((row, rowIndex) => {
+        return dataRows.slice(6).map((row, rowIndex) => {
           const itemObj = {
             _id: `${rowIndex}-${Math.random().toString(36).substr(2, 9)}`,
-            _rowIndex: rowIndex + 1,
+            _rowIndex: rowIndex + 7,
           };
+
           if (row.c) {
             row.c.forEach((cell, i) => {
               itemObj[`col${i}`] = cell?.v ?? cell?.f ?? "";
             });
           }
+
           return itemObj;
         });
       };
@@ -91,20 +105,25 @@ const Tracker = () => {
       const fmsItems = processRows(fmsData.table.rows);
       const masterItems = processRows(masterData.table.rows);
 
-      // Set indents to only FMS data, filtered for empty rows
+      // Filter out completely empty rows for FMS data
       const filteredFMSItems = fmsItems.filter((item) => {
         return DISPLAY_COLUMNS.some((colIndex) => {
           const value = item[`col${colIndex}`];
-          return value && String(value).trim() !== "";
+          return (
+            value !== undefined && value !== null && String(value).trim() !== ""
+          );
         });
       });
-      setIndents(filteredFMSItems);
 
-      // Store master data separately
+      // Log both datasets for debugging
+      console.log("FMS Data:", filteredFMSItems);
+      console.log("Master Data:", masterItems);
+
+      setIndents(filteredFMSItems);
       setMasterSheetData(masterItems);
 
       toast.success(
-        ` ${filteredFMSItems.length} records from FMS sheet fetched! Master data loaded for dialog.`,
+        `${filteredFMSItems.length} FMS records and ${masterItems.length} Master records fetched!`,
         {
           duration: 3000,
           position: "top-right",
@@ -131,14 +150,13 @@ const Tracker = () => {
     const col2Val = String(item.col2 || "").toLowerCase();
     const col4Val = String(item.col4 || "").toLowerCase();
 
-    // Column O and P condition - Hide data if col O is null/empty and col P is not null/not empty
-    const colO = item.col14; // Column O is index 14 (0-based)
-    const colP = item.col15; // Column P is index 15 (0-based)
+    // Column O and P condition
+    const colO = item.col14;
+    const colP = item.col15;
 
     const isColOEmpty = !colO || String(colO).trim() === "";
     const isColPNotEmpty = colP && String(colP).trim() !== "";
 
-    // If col O is empty AND col P is not empty, hide this row
     if (isColOEmpty && isColPNotEmpty) {
       return false;
     }
@@ -200,8 +218,8 @@ const Tracker = () => {
       });
     }
   };
+
   const refreshData = () => {
-    console.log("🔄 Refreshing Reports data...");
     fetchTrackerData();
   };
 
@@ -210,7 +228,7 @@ const Tracker = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Loading Reports data...</p>
+          <p className="text-slate-600 font-medium">Loading Tracker data...</p>
         </div>
       </div>
     );
@@ -249,13 +267,12 @@ const Tracker = () => {
       </div>
     );
   }
-
+  console.log(filteredIndents, masterSheetData, "filteredIndents");
   return (
     <>
       <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50 p-3 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          {/* Main Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
             <div className="bg-gradient-to-r from-green-500 via-teal-500 to-cyan-500 px-2 sm:px-8 py-2 sm:py-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -303,7 +320,7 @@ const Tracker = () => {
                 <table className="w-full">
                   <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                     <tr>
-                      {sheetHeaders.map((header) => (
+                      {trackerData.map((header) => (
                         <th
                           key={header.id}
                           className="px-6 py-4 text-left text-sm font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap"
@@ -344,10 +361,6 @@ const Tracker = () => {
                             <button
                               className="bg-gradient-to-r from-green-100 to-teal-100 text-green-700 border border-green-200 hover:from-green-200 hover:to-teal-200 font-medium py-2 px-4 rounded-lg text-sm flex items-center gap-2 transition-all duration-200"
                               onClick={() => {
-                                console.log(
-                                  "✏️ Selected item for update:",
-                                  item
-                                );
                                 setSelectedIndent(item);
                                 setIsDialogOpen(true);
                               }}
@@ -367,12 +380,9 @@ const Tracker = () => {
       </div>
       <TrackerDialog
         isOpen={isDialogOpen}
-        onClose={() => {
-          console.log("Attempting to close dialog from Tracker."); // Added log for debugging
-          setIsDialogOpen(false);
-        }}
+        onClose={() => setIsDialogOpen(false)}
         dealerData={selectedIndent}
-        masterData={masterSheetData} // Pass master data to the dialog
+        masterData={masterSheetData}
       />
     </>
   );

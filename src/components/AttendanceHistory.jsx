@@ -41,16 +41,25 @@ const formatDate = (value) => {
 
 const AttendanceHistory = () => {
   const [indents, setIndents] = useState([]);
-  const [sheetHeaders, setSheetHeaders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [col2Filter, setCol2Filter] = useState("");
   const [col4Filter, setCol4Filter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [sheetHeaders, setSheetHeaders] = useState(true);
   const [error, setError] = useState(null);
 
   const SPREADSHEET_ID = "1QWL1ZvOOOOn28yRNuemwCsUQ6nugEMo5g4p64Sj8fs0";
   const DISPLAY_COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8];
-
+  const attendenceData = [
+    { id: "col1", label: "Date & Time	" },
+    { id: "col2", label: "End Date" },
+    { id: "col2", label: "Status" },
+    { id: "col3", label: "Reason" },
+    { id: "col4", label: "Latitude" },
+    { id: "col5", label: "Longitude" },
+    { id: "col6", label: "Map Link" },
+    { id: "col7", label: "Formatted Address" },
+  ];
   const fetchAttendanceData = async () => {
     try {
       setIsLoading(true);
@@ -72,12 +81,10 @@ const AttendanceHistory = () => {
       }
 
       const data = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
-      if (!data.table || !data.table.rows) {
-        throw new Error("No table data found");
-      }
 
+      // Set headers from cols (not from rows)
       const headers = [];
-      if (data.table.cols) {
+      if (data.table?.cols) {
         data.table.cols.forEach((col, index) => {
           if (DISPLAY_COLUMNS.includes(index)) {
             headers.push({
@@ -89,18 +96,28 @@ const AttendanceHistory = () => {
       }
       setSheetHeaders(headers);
 
-      const items = data.table.rows.map((row, rowIndex) => {
-        const item = {
-          _id: `${rowIndex}-${Math.random().toString(36).substr(2, 9)}`,
-          _rowIndex: rowIndex + 1,
-        };
-        if (row.c) {
-          row.c.forEach((cell, i) => {
-            item[`col${i}`] = cell?.v ?? cell?.f ?? "";
-          });
-        }
-        return item;
-      });
+      // Process data rows (skip row 0 if it contains headers)
+      const items = [];
+      if (data.table?.rows) {
+        // Start from row 1 if first row contains headers
+        const startRow =
+          headers.length > 0 && headers[0].label === data.table.rows[0]?.c[0]?.v
+            ? 1
+            : 0;
+
+        data.table.rows.slice(startRow).forEach((row, rowIndex) => {
+          const item = {
+            _id: `${rowIndex}-${Math.random().toString(36).substr(2, 9)}`,
+            _rowIndex: rowIndex + startRow + 1,
+          };
+          if (row.c) {
+            row.c.forEach((cell, i) => {
+              item[`col${i}`] = cell?.v ?? cell?.f ?? "";
+            });
+          }
+          items.push(item);
+        });
+      }
 
       const filteredItems = items.filter((item) => {
         return DISPLAY_COLUMNS.some((colIndex) => {
@@ -110,10 +127,13 @@ const AttendanceHistory = () => {
       });
 
       setIndents(filteredItems);
-      toast.success(`${filteredItems.length} records loaded successfully`, {
-        duration: 3000,
-        position: "top-right",
-      });
+
+      if (filteredItems.length > 0) {
+        toast.success(`${filteredItems.length} records loaded`, {
+          duration: 3000,
+          position: "top-right",
+        });
+      }
     } catch (err) {
       console.error("Error fetching data:", err);
       setError(err.message);
@@ -150,7 +170,7 @@ const AttendanceHistory = () => {
 
     return matchesSearchTerm && matchesCol2 && matchesCol4;
   });
-
+  console.log(filteredIndents, "filteredIndents");
   return (
     <>
       <Toaster position="top-right" />
@@ -185,7 +205,7 @@ const AttendanceHistory = () => {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                 <tr>
-                  {sheetHeaders.map((header) => (
+                  {attendenceData.map((header) => (
                     <th
                       key={header.id}
                       className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
@@ -196,13 +216,26 @@ const AttendanceHistory = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {filteredIndents.length === 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={sheetHeaders.length}
+                      className="px-6 py-12 text-center"
+                    >
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredIndents.length <= 1 ? (
                   <tr>
                     <td
                       colSpan={sheetHeaders.length}
                       className="px-6 py-12 text-center text-slate-500 font-medium"
                     >
-                      No matching records found
+                      {error
+                        ? `Error: ${error}`
+                        : "No attendance records found"}
                     </td>
                   </tr>
                 ) : (
@@ -211,9 +244,9 @@ const AttendanceHistory = () => {
                       key={item._id}
                       className="hover:bg-slate-50 transition-colors duration-150"
                     >
-                      {sheetHeaders.map((header) => (
+                      {sheetHeaders.map((header, idx) => (
                         <td
-                          key={`${item._id}-${header.id}`}
+                          key={`${item._id}-${header.id}-${idx}`}
                           className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900"
                         >
                           {header.id === "col1" || header.id === "col2" ? (

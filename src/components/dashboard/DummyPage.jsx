@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { DownloadIcon, FilterIcon, SearchIcon } from "lucide-react";
 
-const Reports = () => {
+const DummyReports = () => {
   const [indents, setIndents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [col2Filter, setCol2Filter] = useState("");
@@ -276,6 +276,24 @@ const Reports = () => {
             </p>
           </div>
 
+          {/* Debug Info (remove in production) */}
+          {debugInfo && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800 text-sm">
+              <p>
+                <strong>Debug Info:</strong>
+              </p>
+              <p>
+                Total Columns: {debugInfo.totalCols}, Total Rows:{" "}
+                {debugInfo.totalRows}
+              </p>
+              <p>Display Columns: {debugInfo.displayColumns.join(", ")}</p>
+              <p>
+                Loaded Items: {indents.length}, Filtered:{" "}
+                {filteredIndents.length}
+              </p>
+            </div>
+          )}
+
           {/* Loading State */}
           {isLoading && (
             <div className="flex justify-center items-center py-12">
@@ -461,4 +479,4 @@ const Reports = () => {
   );
 };
 
-export default Reports;
+export default DummyReports;
